@@ -1,0 +1,66 @@
+# Import python packages
+import streamlit as st
+import pandas as pd
+from snowflake.snowpark.context import get_active_session
+
+# Get the current credentials
+session = get_active_session()
+
+
+df = session.table("ELECTRIC_VEHICLES_DB.RAW_SCH.EV_REGISTRATION_DATA").to_pandas()
+
+df['DMV_SNAPSHOT_DATE'] = pd.to_datetime(df['DMV_SNAPSHOT_DATE'])
+df['REGISTRATION_VALID_DATE'] = pd.to_datetime(df['REGISTRATION_VALID_DATE'])
+
+st.title("Electric Vehicle Registration Dashboard")
+
+# 1. Vehicle Count by State
+st.subheader("Vehicle Count by State")
+st.bar_chart(df['STATE'].value_counts())
+
+# 2. Vehicle Category Distribution
+
+st.subheader('Vehicle category Distribution')
+
+if 'VEHICLE_CATEGORY' in df.columns:
+    category_count = df['VEHICLE_CATEGORY'].value_counts().reset_index()
+    category_count.columns=['VEHICLE_CATEGORY','COUNT']
+    st.line_chart(category_count,x="VEHICLE_CATEGORY",y="COUNT")
+else: 
+    st.warning("'VEHICLE_CATEGORY' column does not exist in the dataframe")
+    
+# 3. Bar Chart: Top 10 Vehicle Makes ---
+st.header("Top 10 Vehicle Makes")
+if 'VEHICLE_MAKE' in df.columns:
+    top_makes = df['VEHICLE_MAKE'].value_counts().nlargest(10).reset_index()
+    top_makes.columns = ['VEHICLE_MAKE', 'Count']
+    st.bar_chart(top_makes, x="VEHICLE_MAKE", y="Count")
+else:
+    st.warning("VEHICLE_MAKE column not found in data for top makes chart.")
+
+# 4. Registration Trends Over Time
+st.subheader("5. Registration Trends Over Time")
+monthly_trend = df.resample('M', on='REGISTRATION_VALID_DATE').size()
+st.line_chart(monthly_trend)
+
+# 5. Vehicle Model Diversity per State
+st.subheader("Vehicle Model Diversity per State")
+model_diversity = df.groupby('STATE')['VEHICLE_MODEL'].nunique().reset_index(name='UNIQUE_MODELS')
+st.bar_chart(model_diversity.set_index('STATE'))
+
+# --- 6. Table: Filterable Data Table ---
+st.header("Filterable DMV Data Table")
+if not df.empty:
+    # Example filter for 'STATE'
+    selected_state = st.selectbox(
+        "Select a State to filter:",
+        options=['All'] + sorted(df['STATE'].unique().tolist())
+    )
+
+    filtered_df = df.copy()
+    if selected_state != 'All':
+        filtered_df = df[df['STATE'] == selected_state]
+
+    st.dataframe(filtered_df)
+else:
+    st.warning("No data loaded to display a filterable table.")
