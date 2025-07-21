@@ -38,7 +38,11 @@ Using CTEs and window functions for deeper insights
 
 ## 📂 Project Structure
 ├── sql_queries/
-│   └── ev_analysis_queries.sql
+│   └── ev_registration_analysis.sql
+├── streamlit_app/
+│   └── app.py
+├── visuals/
+│   └── dashboard_screenshots/
 ├── README.md
 
 ## 📈 Sample Questions Answered
